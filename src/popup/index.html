@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quizizz Assistant</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="lang-switch" id="langSwitch" title="Switch Language / Chuyển đổi ngôn ngữ">
+        <button id="btnLangVi" class="lang-btn active" data-lang="vi" type="button" title="Tiếng Việt">VIE</button>
+        <button id="btnLangEn" class="lang-btn" data-lang="en" type="button" title="English">ENG</button>
+      </div>
+      <h1 class="title">QUIZIZZ ASSISTANT</h1>
+      <button id="btnClosePopup" class="btn-close" title="Đóng Popup">✕</button>
+    </header>
+
+    <!-- Crawl & Database Section -->
+    <section class="section">
+      <div class="crawl-buttons-row">
+        <button id="btnCrawl" class="btn btn-primary btn-flex" title="Cào toàn bộ đáp án từ tab CheatNetwork hiện tại">
+          <span class="btn-icon">⚡</span> <span id="txtBtnCrawl">CRAWL</span>
+        </button>
+        <button id="btnResetDb" class="btn btn-secondary" title="Xóa toàn bộ database câu hỏi">
+          🗑 <span id="txtBtnReset">RESET</span>
+        </button>
+      </div>
+
+      <div class="meta-row">
+        <span class="meta-label" id="lblCrawlStatus">Trạng thái:</span>
+        <span id="crawlStatus" class="meta-value status-idle">Sẵn sàng</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-label" id="lblQuestions">Số câu hỏi:</span>
+        <span id="questionCount" class="meta-value">0</span>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- Assistant Controls Section -->
+    <section class="section">
+      <div class="section-title" id="lblControlsTitle">ĐIỀU KHIỂN HIỂN THỊ ĐÁP ÁN</div>
+
+      <div class="action-buttons">
+        <button id="btnStart" class="btn btn-success">START</button>
+        <button id="btnStop" class="btn btn-danger">STOP</button>
+      </div>
+
+      <div class="session-info">
+        <div class="meta-row">
+          <span class="meta-label" id="lblSessionStatus">Trạng thái:</span>
+          <span id="sessionStatus" class="meta-value status-ready">Sẵn sàng</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-label" id="lblProgress">Tiến độ:</span>
+          <span id="progressText" class="meta-value">0 / 0</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Notification Alert -->
+    <div id="alertBox" class="alert hidden"></div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

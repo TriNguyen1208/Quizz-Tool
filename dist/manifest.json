@@ -1,0 +1,47 @@
+{
+  "manifest_version": 3,
+  "name": "Quizizz Assistant",
+  "version": "1.0.1",
+  "description": "Assistant for Quizizz with Show Answer and Auto Click modes",
+  "permissions": [
+    "storage",
+    "tabs",
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "*://*.quizizz.com/*",
+    "*://quizizz.com/*",
+    "*://*.wayground.com/*",
+    "*://wayground.com/*",
+    "*://*.cheatnetwork.eu/*",
+    "*://cheatnetwork.eu/*"
+  ],
+  "action": {
+    "default_popup": "popup/index.html",
+    "default_title": "Quizizz Assistant"
+  },
+  "background": {
+    "service_worker": "background/service-worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.quizizz.com/*",
+        "*://quizizz.com/*",
+        "*://*.wayground.com/*",
+        "*://wayground.com/*"
+      ],
+      "js": ["content/quizizz.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "*://*.cheatnetwork.eu/*",
+        "*://cheatnetwork.eu/*"
+      ],
+      "js": ["content/crawler.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
