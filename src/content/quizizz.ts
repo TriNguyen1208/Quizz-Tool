@@ -33,6 +33,9 @@ let stopObserverCallback: (() => void) | null = null;
 let currentProgress = 0;
 let lastMatch: MatchResult | null = null;
 let lastState: CurrentQuizState | null = null;
+let currentLockedQuesId: string | null = null;
+let currentLockedQuesNum: number | null = null;
+let currentLockedQuesText: string | null = null;
 
 (window as any).__QUIZIZZ_ASSISTANT_CLEANUP__ = () => {
   stopSession();
@@ -43,6 +46,23 @@ let lastState: CurrentQuizState | null = null;
  */
 async function processCurrentQuestion(state: CurrentQuizState) {
   if (!isRunning || !isExtensionValid()) return;
+
+  // Question ID & Number Lock:
+  // If we already matched and displayed answers for this exact question,
+  // do NOT re-match or re-trigger HUD updates while the user is typing their answer!
+  if (state.questionId && state.questionId === currentLockedQuesId) {
+    return;
+  }
+  if (!state.questionId && state.questionNumber != null && state.questionNumber === currentLockedQuesNum) {
+    return;
+  }
+  if (!state.questionId && state.questionNumber == null && state.questionText === currentLockedQuesText) {
+    return;
+  }
+
+  currentLockedQuesId = state.questionId || null;
+  currentLockedQuesNum = state.questionNumber ?? null;
+  currentLockedQuesText = state.questionText;
 
   // Refresh DB cache if needed
   if (cachedQuizDB.length === 0) {

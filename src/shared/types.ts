@@ -18,6 +18,8 @@ export interface QuizItem {
 }
 
 export interface CurrentQuizState {
+  questionId?: string;
+  questionNumber?: number;
   questionText: string;
   options: {
     index: number;

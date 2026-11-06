@@ -47,6 +47,53 @@ const OPTION_ITEM_SELECTORS = [
 ];
 
 /**
+ * Extracts clean question text by stripping out any form controls,
+ * typed responses, or counters that could be polluted by user input
+ */
+function extractCleanQuestionText(el: HTMLElement): string {
+  const clone = el.cloneNode(true) as HTMLElement;
+  clone
+    .querySelectorAll(
+      "input, textarea, select, [contenteditable], .typed-response-container, [data-cy*='typed'], [data-testid*='typed'], .pill, button, .gesture-ed"
+    )
+    .forEach((n) => n.remove());
+  return clone.innerText.trim();
+}
+
+/**
+ * Extracts stable Question ID from Quizizz DOM if available
+ */
+export function extractQuestionId(): string | undefined {
+  const container = document.querySelector<HTMLElement>(
+    "[data-quesid], [data-quesidandattemptcount], [data-testid='quiz-container'], .quiz-container"
+  );
+  if (container) {
+    const qId = container.getAttribute("data-quesid") || (container as any).dataset?.quesid;
+    if (qId && qId.trim().length > 0) return qId.trim();
+    const qAttempt = container.getAttribute("data-quesidandattemptcount");
+    if (qAttempt) {
+      const idPart = qAttempt.split("-")[0];
+      if (idPart && idPart.trim().length > 0) return idPart.trim();
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Extracts question index/number from the Quizizz DOM if present
+ */
+export function extractQuestionNumber(): number | undefined {
+  const curEl = document.querySelector<HTMLElement>(
+    '[data-testid="current-question-number"], [data-cy="current-question-number"]'
+  );
+  if (curEl) {
+    const num = parseInt(curEl.innerText.trim(), 10);
+    if (!isNaN(num) && num > 0) return num;
+  }
+  return undefined;
+}
+
+/**
  * Extracts pure option text without keyboard shortcut numbers or aria noise
  */
 function extractCleanOptionText(buttonEl: HTMLElement): string {
@@ -76,15 +123,18 @@ function extractCleanOptionText(buttonEl: HTMLElement): string {
  * Read the current question and its selectable options from the Quizizz page
  */
 export function readCurrentQuiz(): CurrentQuizState | null {
-  // 1. Detect question text
+  // 1. Detect question text (using extractCleanQuestionText to never capture typed input)
   let rawQuestionText = "";
   for (const selector of QUESTION_SELECTORS) {
     const el = document.querySelector<HTMLElement>(selector);
-    if (el && el.innerText && el.innerText.trim().length > 0) {
+    if (el) {
       // Exclude question number pill if caught
       if (!el.closest(".pill")) {
-        rawQuestionText = el.innerText.trim();
-        break;
+        const text = extractCleanQuestionText(el);
+        if (text.length > 0) {
+          rawQuestionText = text;
+          break;
+        }
       }
     }
   }
@@ -94,8 +144,11 @@ export function readCurrentQuiz(): CurrentQuizState | null {
     const container = document.querySelector<HTMLElement>('[data-testid="question-container"], .quiz-container');
     if (container) {
       const p = container.querySelector<HTMLElement>("#questionText, p");
-      if (p && p.innerText && p.innerText.trim().length > 2) {
-        rawQuestionText = p.innerText.trim();
+      if (p) {
+        const text = extractCleanQuestionText(p);
+        if (text.length > 2) {
+          rawQuestionText = text;
+        }
       }
     }
   }
@@ -176,7 +229,12 @@ export function readCurrentQuiz(): CurrentQuizState | null {
     }
   }
 
+  const qId = extractQuestionId();
+  const qNum = extractQuestionNumber();
+
   return {
+    questionId: qId,
+    questionNumber: qNum,
     questionText: rawQuestionText,
     options,
     isFillInTheBlank: !!fillInInput,
@@ -208,7 +266,10 @@ export function observeQuizChanges(
   onQuestionChange: (state: CurrentQuizState) => void,
   onQuizEnd?: () => void
 ): () => void {
-  let lastQuestion = "";
+  let lastQuestionId = "";
+  let lastQuestionNumber: number | null = null;
+  let lastQuestionText = "";
+  let isInitial = true;
 
   const check = () => {
     // Check if extension context is still valid (stops running if extension was reloaded)
@@ -219,8 +280,48 @@ export function observeQuizChanges(
     }
 
     const state = readCurrentQuiz();
-    if (state && state.questionText && state.questionText !== lastQuestion) {
-      lastQuestion = state.questionText;
+    if (!state || !state.questionText) return;
+
+    // Detect if user is currently typing inside an input or textarea
+    const activeEl = document.activeElement;
+    const isUserTyping =
+      activeEl &&
+      (activeEl.tagName === "INPUT" ||
+        activeEl.tagName === "TEXTAREA" ||
+        (activeEl as HTMLElement).isContentEditable);
+
+    let hasChanged = false;
+
+    if (isInitial) {
+      hasChanged = true;
+      isInitial = false;
+    } else if (state.questionId && lastQuestionId) {
+      // Compare by stable Quizizz Question ID if available
+      if (state.questionId !== lastQuestionId) {
+        hasChanged = true;
+      }
+    } else if (state.questionNumber != null && lastQuestionNumber != null) {
+      // Compare by question counter if available
+      if (state.questionNumber !== lastQuestionNumber) {
+        hasChanged = true;
+      }
+    } else {
+      // Fallback compare question text
+      if (state.questionText !== lastQuestionText) {
+        hasChanged = true;
+      }
+    }
+
+    // CRITICAL: If the user is actively typing in an input field, NEVER trigger a question change
+    // unless the question ID or question number has genuinely changed!
+    if (isUserTyping && !hasChanged) {
+      return;
+    }
+
+    if (hasChanged) {
+      lastQuestionId = state.questionId || "";
+      lastQuestionNumber = state.questionNumber ?? null;
+      lastQuestionText = state.questionText;
       onQuestionChange(state);
     }
   };
