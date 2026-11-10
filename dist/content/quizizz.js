@@ -189,6 +189,38 @@
   });
 
   // src/shared/quiz-reader.ts
+  function extractCleanQuestionText(el) {
+    const clone = el.cloneNode(true);
+    clone.querySelectorAll(
+      "input, textarea, select, [contenteditable], .typed-response-container, [data-cy*='typed'], [data-testid*='typed'], .pill, button, .gesture-ed"
+    ).forEach((n) => n.remove());
+    return clone.innerText.trim();
+  }
+  function extractQuestionId() {
+    const container = document.querySelector(
+      "[data-quesid], [data-quesidandattemptcount], [data-testid='quiz-container'], .quiz-container"
+    );
+    if (container) {
+      const qId = container.getAttribute("data-quesid") || container.dataset?.quesid;
+      if (qId && qId.trim().length > 0) return qId.trim();
+      const qAttempt = container.getAttribute("data-quesidandattemptcount");
+      if (qAttempt) {
+        const idPart = qAttempt.split("-")[0];
+        if (idPart && idPart.trim().length > 0) return idPart.trim();
+      }
+    }
+    return void 0;
+  }
+  function extractQuestionNumber() {
+    const curEl = document.querySelector(
+      '[data-testid="current-question-number"], [data-cy="current-question-number"]'
+    );
+    if (curEl) {
+      const num = parseInt(curEl.innerText.trim(), 10);
+      if (!isNaN(num) && num > 0) return num;
+    }
+    return void 0;
+  }
   function extractCleanOptionText(buttonEl) {
     const textEl = buttonEl.querySelector(
       "#optionText p, #optionText, .content-slot p, .content-slot, [id*='optionText']"
@@ -210,10 +242,13 @@
     let rawQuestionText = "";
     for (const selector of QUESTION_SELECTORS) {
       const el = document.querySelector(selector);
-      if (el && el.innerText && el.innerText.trim().length > 0) {
+      if (el) {
         if (!el.closest(".pill")) {
-          rawQuestionText = el.innerText.trim();
-          break;
+          const text = extractCleanQuestionText(el);
+          if (text.length > 0) {
+            rawQuestionText = text;
+            break;
+          }
         }
       }
     }
@@ -221,8 +256,11 @@
       const container = document.querySelector('[data-testid="question-container"], .quiz-container');
       if (container) {
         const p = container.querySelector("#questionText, p");
-        if (p && p.innerText && p.innerText.trim().length > 2) {
-          rawQuestionText = p.innerText.trim();
+        if (p) {
+          const text = extractCleanQuestionText(p);
+          if (text.length > 2) {
+            rawQuestionText = text;
+          }
         }
       }
     }
@@ -290,7 +328,11 @@
         }
       }
     }
+    const qId = extractQuestionId();
+    const qNum = extractQuestionNumber();
     return {
+      questionId: qId,
+      questionNumber: qNum,
       questionText: rawQuestionText,
       options,
       isFillInTheBlank: !!fillInInput,
@@ -310,7 +352,10 @@
     return null;
   }
   function observeQuizChanges(onQuestionChange, onQuizEnd) {
-    let lastQuestion = "";
+    let lastQuestionId = "";
+    let lastQuestionNumber = null;
+    let lastQuestionText = "";
+    let isInitial = true;
     const check = () => {
       if (!isExtensionValid()) {
         observer.disconnect();
@@ -318,8 +363,33 @@
         return;
       }
       const state = readCurrentQuiz();
-      if (state && state.questionText && state.questionText !== lastQuestion) {
-        lastQuestion = state.questionText;
+      if (!state || !state.questionText) return;
+      const activeEl = document.activeElement;
+      const isUserTyping = activeEl && (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA" || activeEl.isContentEditable);
+      let hasChanged = false;
+      if (isInitial) {
+        hasChanged = true;
+        isInitial = false;
+      } else if (state.questionId && lastQuestionId) {
+        if (state.questionId !== lastQuestionId) {
+          hasChanged = true;
+        }
+      } else if (state.questionNumber != null && lastQuestionNumber != null) {
+        if (state.questionNumber !== lastQuestionNumber) {
+          hasChanged = true;
+        }
+      } else {
+        if (state.questionText !== lastQuestionText) {
+          hasChanged = true;
+        }
+      }
+      if (isUserTyping && !hasChanged) {
+        return;
+      }
+      if (hasChanged) {
+        lastQuestionId = state.questionId || "";
+        lastQuestionNumber = state.questionNumber ?? null;
+        lastQuestionText = state.questionText;
         onQuestionChange(state);
       }
     };
@@ -923,11 +993,26 @@
       var currentProgress = 0;
       var lastMatch = null;
       var lastState = null;
+      var currentLockedQuesId = null;
+      var currentLockedQuesNum = null;
+      var currentLockedQuesText = null;
       window.__QUIZIZZ_ASSISTANT_CLEANUP__ = () => {
         stopSession();
       };
       async function processCurrentQuestion(state) {
         if (!isRunning || !isExtensionValid()) return;
+        if (state.questionId && state.questionId === currentLockedQuesId) {
+          return;
+        }
+        if (!state.questionId && state.questionNumber != null && state.questionNumber === currentLockedQuesNum) {
+          return;
+        }
+        if (!state.questionId && state.questionNumber == null && state.questionText === currentLockedQuesText) {
+          return;
+        }
+        currentLockedQuesId = state.questionId || null;
+        currentLockedQuesNum = state.questionNumber ?? null;
+        currentLockedQuesText = state.questionText;
         if (cachedQuizDB.length === 0) {
           cachedQuizDB = await getQuizDatabase();
         }
