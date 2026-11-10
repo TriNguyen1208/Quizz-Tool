@@ -144,6 +144,9 @@ async function startSession() {
  */
 async function stopSession() {
   isRunning = false;
+  currentLockedQuesId = null;
+  currentLockedQuesNum = null;
+  currentLockedQuesText = null;
   clearShowAnswerHighlights();
   removeFloatingHUD();
 

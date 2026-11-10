@@ -166,6 +166,14 @@ For quick access while taking a quiz:
 
 ---
 
+## 📖 Sample image
+
+<p align="center">
+  <img src="./image/example.png" alt="Sample image" width="850" />
+</p>
+<br>
+
+
 ## 📖 Detailed Workflow
 
 ```mermaid

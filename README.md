@@ -163,6 +163,12 @@ Sau khi nạp thành công, tiện ích **Quizizz Assistant** sẽ hiển thị 
 3. Bấm vào biểu tượng chiếc **Ghim (📌)** để biểu tượng tiện ích luôn xuất hiện cố định trên thanh công cụ.
 
 ---
+## 📖 Hình ảnh minh hoạ
+
+<p align="center">
+  <img src="./image/example.png" alt="Ảnh minh hoạ" width="850" />
+</p>
+<br>
 
 ## 📖 Quy trình sử dụng chi tiết (Workflow)
 

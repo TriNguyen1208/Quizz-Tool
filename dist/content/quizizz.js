@@ -706,11 +706,26 @@
     style.textContent = `
     .${HIGHLIGHT_CLASS} {
       position: relative !important;
-      border: 3px solid #10b981 !important;
-      box-shadow: 0 0 20px rgba(16, 185, 129, 0.6) !important;
-      background-color: rgba(16, 185, 129, 0.12) !important;
-      transition: all 0.3s ease !important;
-      transform: scale(1.01) !important;
+      border: 3.5px solid #00e676 !important;
+      outline: 3px solid #00e676 !important;
+      outline-offset: 2px !important;
+      box-shadow: 0 0 25px rgba(0, 230, 118, 0.85), inset 0 0 15px rgba(0, 230, 118, 0.25) !important;
+      background-color: rgba(0, 230, 118, 0.16) !important;
+      transition: all 0.25s ease-in-out !important;
+      transform: scale(1.015) !important;
+      z-index: 10 !important;
+      animation: qaPulseNeonGreen 1.5s infinite alternate ease-in-out !important;
+    }
+
+    @keyframes qaPulseNeonGreen {
+      0% {
+        outline-color: #00e676;
+        box-shadow: 0 0 15px rgba(0, 230, 118, 0.65), inset 0 0 10px rgba(0, 230, 118, 0.2);
+      }
+      100% {
+        outline-color: #00ff88;
+        box-shadow: 0 0 32px rgba(0, 255, 136, 0.95), inset 0 0 22px rgba(0, 255, 136, 0.35);
+      }
     }
     #${HUD_ID} {
       position: fixed;
@@ -787,7 +802,7 @@
       background: #1e293b;
       padding: 8px 10px;
       border-radius: 6px;
-      border-left: 3px solid #10b981;
+      border-left: 3px solid #00e676;
       word-break: break-word;
     }
     #${HUD_ID} .confidence-bar-container {
@@ -865,7 +880,7 @@
     }
     const score = match.confidenceScore;
     let barColor = "#ef4444";
-    if (score >= 90) barColor = "#10b981";
+    if (score >= 90) barColor = "#00e676";
     else if (score >= 70) barColor = "#f59e0b";
     const modeBadge = `<span style="background:#0284c7;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;">${i18n.hudBadge}</span>`;
     let footerNotice = i18n.hudManualClick;
@@ -1067,6 +1082,9 @@
       }
       async function stopSession() {
         isRunning = false;
+        currentLockedQuesId = null;
+        currentLockedQuesNum = null;
+        currentLockedQuesText = null;
         clearShowAnswerHighlights();
         removeFloatingHUD();
         if (stopObserverCallback) {
